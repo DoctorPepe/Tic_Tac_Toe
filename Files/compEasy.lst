@@ -1,0 +1,238 @@
+     1                                  ;Name: Nicholas Schaffer
+     2                                  ;User ID: nschaff1
+     3                                  ;Email: nschaff1@umbc.edu
+     4                                  ;Date: 12/9/2020
+     5                                  ;Description: this file holds the subroutine for the easy mode of the tictactoe game. The computer randomly places pieces down on the board.
+     6                                  	
+     7                                  	extern drawBoard
+     8                                  	extern randomNum
+     9                                  	extern checkWinner
+    10                                  	extern clearScoreBoard
+    11                                  	extern main
+    12                                  	
+    13                                  	section .data
+    14 00000000 5374617274696E6720-     welcome:	db	"Starting Easy Mode...", 10
+    14 00000009 45617379204D6F6465-
+    14 00000012 2E2E2E0A           
+    15                                  len_welcome	equ	$-welcome
+    16                                  
+    17 00000016 456E7465722061206C-     play:		db	"Enter a location on the board (1-16): ", 10
+    17 0000001F 6F636174696F6E206F-
+    17 00000028 6E2074686520626F61-
+    17 00000031 72642028312D313629-
+    17 0000003A 3A200A             
+    18                                  len_play	equ	$-play
+    19                                  
+    20 0000003D 436F6D707574657220-     computer:	db	"Computer is playing...", 10
+    20 00000046 697320706C6179696E-
+    20 0000004F 672E2E2E0A         
+    21                                  len_comp	equ	$-computer
+    22                                  
+    23 00000054 496E636F7272656374-     incorrect_msg:	db	"Incorrect input!", 10
+    23 0000005D 20696E707574210A   
+    24                                  len_incorrect	equ	$-incorrect_msg
+    25                                  
+    26 00000065 497473206120546965-     tie_msg:	db      "Its a Tie", 10
+    26 0000006E 0A                 
+    27                                  len_tie_msg     equ     $-tie_msg
+    28                                  	
+    29                                  board:
+    30 0000006F 20                      	db	' '
+    31 00000070 20                      	db	' '
+    32 00000071 20                      	db	' '
+    33 00000072 20                      	db	' '
+    34 00000073 20                      	db	' '
+    35 00000074 20                      	db	' '
+    36 00000075 20                      	db	' '
+    37 00000076 20                      	db	' '
+    38 00000077 20                      	db	' '
+    39 00000078 20                      	db	' '
+    40 00000079 20                      	db	' '
+    41 0000007A 20                      	db	' '
+    42 0000007B 20                      	db	' '
+    43 0000007C 20                      	db	' '
+    44 0000007D 20                      	db	' '
+    45 0000007E 20                      	db	' '
+    46 0000007F 0B                      	db	11
+    47                                  	
+    48                                  	section .bss
+    49 00000000 <res 00000010>          input		resb	16
+    50                                  	
+    51                                  	section .text
+    52                                  	global	compEasy
+    53                                  	
+    54                                  compEasy:
+    55                                  	;; clear game board and scoreBoard
+    56 00000000 48BF-                   	mov	rdi, board
+    56 00000002 [6F00000000000000] 
+    57 0000000A E877010000              	call	clearBoard
+    58 0000000F E8(00000000)            	call	clearScoreBoard
+    59                                  
+    60                                  	;; welcome message
+    61 00000014 48BE-                   	mov	rsi, welcome
+    61 00000016 [0000000000000000] 
+    62 0000001E BA16000000              	mov	rdx, len_welcome
+    63 00000023 E8F6000000              	call	print_out2
+    64                                  	
+    65 00000028 E801000000              	call	gameLoop
+    66 0000002D C3                      	ret
+    67                                  
+    68                                  gameLoop:
+    69                                  	;; by c calling convention, first parameter for function should be put in rdi
+    70 0000002E 48BF-                   	mov	rdi, board
+    70 00000030 [6F00000000000000] 
+    71 00000038 E8(00000000)            	call	drawBoard
+    72                                  
+    73                                  	;; print
+    74 0000003D 48BE-                           mov     rsi, play
+    74 0000003F [1600000000000000] 
+    75 00000047 BA27000000              	mov     rdx, len_play
+    76 0000004C E8CD000000              	call 	print_out2
+    77                                  
+    78                                  	;; get validated user input
+    79 00000051 E81B000000              	call	getInput
+    80                                  
+    81                                  	;; if game was not won, computer goes
+    82 00000056 48BE-                   	mov 	rsi, computer
+    82 00000058 [3D00000000000000] 
+    83 00000060 BA17000000              	mov	rdx, len_comp
+    84 00000065 E8B4000000              	call 	print_out2
+    85 0000006A E8D7000000              	call	comp
+    86                                  	
+    87 0000006F EBBD                    	jmp	gameLoop
+    88                                  
+    89                                  getInput:
+    90                                  	;;  get user input
+    91 00000071 B800000000              	mov     rax, 0
+    92 00000076 BF00000000              	mov     rdi, 0
+    93 0000007B 48BE-                   	mov     rsi, input
+    93 0000007D [0000000000000000] 
+    94 00000085 BA10000000              	mov     rdx, 16
+    95 0000008A 0F05                    	syscall
+    96                                  
+    97 0000008C 4831C0                  	xor	rax, rax
+    98 0000008F 48BF-                   	mov	rdi, input
+    98 00000091 [0000000000000000] 
+    99 00000099 E88D000000              	call	strToInt
+   100                                  	;; result will be stored in r12 as it is callee saved
+   101 0000009E 4C89E0                  	mov	rax, r12
+   102 000000A1 4883E801                	sub	rax, 1
+   103 000000A5 48890425[00000000]      	mov	[input], rax
+   104                                  	
+   105                                  	;; jump to incorrect if input is less than 0 or greater than 15
+   106 000000AD 41B800000000            	mov	r8, 0
+   107 000000B3 41B90F000000            	mov	r9, 15
+   108 000000B9 4C39C0                  	cmp	rax, r8
+   109 000000BC 7C46                    	jl	incorrect
+   110 000000BE 4C39C8                  	cmp	rax, r9
+   111 000000C1 7F41                    	jg	incorrect
+   112                                  
+   113                                  	;; otherwise the input is valid and we can add it to the board and carry on
+   114 000000C3 48B9-                   	mov	rcx, board
+   114 000000C5 [6F00000000000000] 
+   115 000000CD 48030C25[00000000]      	add	rcx, [input]
+   116                                  	;; check at this spot if there is already a piece here
+   117 000000D5 803978                  	cmp	byte[rcx], 'x'
+   118 000000D8 742A                    	je	incorrect
+   119 000000DA 80396F                  	cmp	byte[rcx], 'o'
+   120 000000DD 7425                    	je	incorrect
+   121                                  
+   122                                  	;; otherwise place the piece at this location
+   123 000000DF C60178                  	mov	byte[rcx], 'x'
+   124                                  
+   125                                  	;; after placing piece, check winner
+   126                                  	;; subroutine expecting most recently played char in rsi and index in rdi
+   127 000000E2 488B3C25[00000000]      	mov	rdi, [input]
+   128 000000EA BE78000000              	mov	rsi, 'x'
+   129 000000EF E8(00000000)            	call	checkWinner
+   130 000000F4 48BF-                   	mov	rdi, board
+   130 000000F6 [6F00000000000000] 
+   131 000000FE E88F000000              	call	tie
+   132 00000103 C3                      	ret
+   133                                  	
+   134                                  incorrect:
+   135 00000104 48BE-                   	mov	rsi, incorrect_msg
+   135 00000106 [5400000000000000] 
+   136 0000010E BA11000000              	mov	rdx, len_incorrect
+   137 00000113 E806000000              	call	print_out2
+   138                                  
+   139 00000118 E954FFFFFF              	jmp	getInput
+   140 0000011D C3                      	ret
+   141                                  
+   142                                  print_out2:
+   143 0000011E B801000000              	mov     rax, 1
+   144 00000123 BF01000000              	mov     rdi, 1
+   145 00000128 0F05                    	syscall
+   146 0000012A C3                      	ret
+   147                                  
+   148                                  strToInt:
+   149                                  	;rdi contains address of input, rax will be our integer
+   150 0000012B 486BC00A                	imul    rax, 10
+   151 0000012F 4831D2                  	xor     rdx, rdx
+   152 00000132 8A17                    	mov     dl, byte[rdi]
+   153 00000134 80EA30                  	sub     dl, 48
+   154 00000137 4801D0                  	add     rax, rdx
+   155 0000013A 48FFC7                  	inc     rdi
+   156                                  
+   157                                  	;as long as next character is not a null, continue to loop
+   158 0000013D 803F0A                  	cmp     byte[rdi], 10	;before we adjust for actual values, 10 is a newline
+   159 00000140 75E9                    	jne     strToInt
+   160                                  
+   161 00000142 4989C4                  	mov	r12, rax
+   162 00000145 C3                      	ret
+   163                                  
+   164                                  comp:
+   165 00000146 E8(00000000)            	call	randomNum	;random number in rax
+   166 0000014B 4883E801                	sub	rax, 1		;to make it index
+   167                                  
+   168 0000014F 48B9-                   	mov     rcx, board
+   168 00000151 [6F00000000000000] 
+   169 00000159 4801C1                  	add     rcx, rax
+   170                                  	;check at this spot if there is already a piece here
+   171 0000015C 803978                  	cmp     byte[rcx], 'x'
+   172 0000015F 74E5                    	je      comp
+   173 00000161 80396F                  	cmp     byte[rcx], 'o'
+   174 00000164 74E0                    	je      comp
+   175                                  	;otherwise place the piece at this location
+   176 00000166 C6016F                  	mov     byte[rcx], 'o'
+   177                                  
+   178                                  	;; check for winner after placing piece
+   179                                  	;; subroutine expecting most recently played char in rsi and index in rdi
+   180 00000169 4889C7                  	mov	rdi, rax
+   181 0000016C BE6F000000              	mov	rsi, 'o'
+   182 00000171 E8(00000000)            	call checkWinner
+   183 00000176 48BF-                   	mov     rdi, board
+   183 00000178 [6F00000000000000] 
+   184 00000180 E80D000000              	call    tie
+   185 00000185 C3                      	ret
+   186                                  
+   187                                  clearBoard:
+   188                                  	;; clear the board, and replace every spot with a space
+   189 00000186 C60720                  	mov	byte[rdi], ' '
+   190                                  	
+   191 00000189 48FFC7                  	inc	rdi
+   192 0000018C 803F0B                  	cmp	byte[rdi], 11
+   193 0000018F 75F5                    	jne	clearBoard
+   194 00000191 C3                      	ret
+   195                                  
+   196                                  tie:
+   197 00000192 803F20                  	cmp	byte[rdi], ' '
+   198 00000195 740D                    	je	notTie
+   199                                  
+   200 00000197 48FFC7                  	inc	rdi
+   201 0000019A 803F0B                  	cmp	byte[rdi], 11
+   202 0000019D 75F3                    	jne	tie
+   203 0000019F 803F0B                  	cmp	byte[rdi], 11
+   204 000001A2 7401                    	je	tieFound
+   205                                  
+   206                                  notTie:
+   207 000001A4 C3                      	ret
+   208                                  
+   209                                  tieFound:
+   210 000001A5 48BE-                   	mov	rsi, tie_msg
+   210 000001A7 [6500000000000000] 
+   211 000001AF BA0A000000              	mov	rdx, len_tie_msg
+   212 000001B4 E865FFFFFF              	call	print_out2
+   213                                  
+   214 000001B9 E8(00000000)            	call main
+   215 000001BE C3                      	ret

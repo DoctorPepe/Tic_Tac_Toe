@@ -1,0 +1,354 @@
+     1                                  ;; Name: Nicholas Schaffer
+     2                                  ;; User ID: nschaff1
+     3                                  ;; Email: nschaff1@umbc.edu
+     4                                  ;; Date: 12/9/2020
+     5                                  ;; Description: this file holds the subroutine which checks to see if either the computer or the player has won. the following is my general algorithm:
+     6                                  	;; check rows (1, 5, 9, 13) and columns (1-4), then diagonals for all the same character
+     7                                  	;; get the character at the leftmost spot. If either player has won, we can assume that this place will be filled by the winning piece type
+     8                                  	;; if all types of the row/column/diagonal we are checking has this piece (4 total) we have a winner
+     9                                  
+    10                                  	extern main
+    11                                  	
+    12                                  	section .data
+    13 00000000 596F75206861766520-     player_won_msg:		db	"You have won!", 10
+    13 00000009 776F6E210A         
+    14                                  len_play_won		equ	$-player_won_msg
+    15                                  	
+    16 0000000E 54686520636F6D7075-     comp_won_msg:		db	"The computer has won :(", 10
+    16 00000017 746572206861732077-
+    16 00000020 6F6E203A280A       
+    17                                  len_comp_won		equ	$-comp_won_msg
+    18                                  
+    19 00000026 00                      futMov:			db	0
+    20                                  	
+    21                                  scoreBoard:
+    22 00000027 00                      	db	0		;row0 (index 0-3)
+    23 00000028 00                      	db	0		;row1 (index 4-7)
+    24 00000029 00                      	db	0		;row2 (index 8-11)
+    25 0000002A 00                      	db	0		;row3 (index 12-15)
+    26 0000002B 00                      	db	0		;col0 (index 0, 4, 8, 12)
+    27 0000002C 00                      	db	0		;col1 (index 1, 5, 9, 13)
+    28 0000002D 00                      	db	0		;col2 (index 2, 6, 10, 14)
+    29 0000002E 00                      	db	0		;col3 (index 3, 7, 11, 15)
+    30 0000002F 00                      	db	0		;diag (index 0, 5, 10, 15)
+    31 00000030 00                      	db	0		;antidiag (index 3, 6, 9, 12)
+    32 00000031 0B                      	db	11		;end of array marker
+    33                                  	
+    34                                  	section .text
+    35                                  	global	checkWinner
+    36                                  	global	clearScoreBoard
+    37                                  	global	getFutureMove
+    38                                  	
+    39                                  checkWinner:
+    40                                  	;; the index -> rdi
+    41                                  	;; character most recently played -> rsi
+    42                                  	;; scoreBoard -> rdx
+    43                                  	;; to turn index (i) into an (x, y) coordinate:
+    44                                  	;; x = column = i % 4
+    45                                  	;; y = row = i / width (integer division)
+    46                                  
+    47 00000000 E80B000000              	call	check_columns
+    48 00000005 E8A7000000              	call	check_rows
+    49                                  	
+    50                                  	;; special case for diagonals
+    51 0000000A E843010000              	call	diagonals
+    52 0000000F C3                      	ret
+    53                                  
+    54                                  check_columns:
+    55 00000010 4883FF00                	cmp	rdi, 0
+    56 00000014 0F8415020000            	je	col0
+    57 0000001A 4883FF01                	cmp	rdi, 1
+    58 0000001E 0F842E020000            	je	col1
+    59 00000024 4883FF02                	cmp	rdi, 2
+    60 00000028 0F843F020000            	je	col2
+    61 0000002E 4883FF03                	cmp	rdi, 3
+    62 00000032 0F8450020000            	je	col3
+    63 00000038 4883FF04                	cmp	rdi, 4
+    64 0000003C 0F84ED010000            	je	col0
+    65 00000042 4883FF05                	cmp	rdi, 5
+    66 00000046 0F8406020000            	je	col1
+    67 0000004C 4883FF06                	cmp	rdi, 6
+    68 00000050 0F8417020000            	je	col2
+    69 00000056 4883FF07                	cmp	rdi, 7
+    70 0000005A 0F8428020000            	je	col3
+    71 00000060 4883FF08                	cmp	rdi, 8
+    72 00000064 0F84C5010000            	je	col0
+    73 0000006A 4883FF09                	cmp	rdi, 9
+    74 0000006E 0F84DE010000            	je	col1
+    75 00000074 4883FF0A                	cmp	rdi, 10
+    76 00000078 0F84EF010000            	je	col2
+    77 0000007E 4883FF0B                	cmp	rdi, 11
+    78 00000082 0F8400020000            	je	col3
+    79 00000088 4883FF0C                	cmp	rdi, 12
+    80 0000008C 0F849D010000            	je	col0
+    81 00000092 4883FF0D                	cmp	rdi, 13
+    82 00000096 0F84B6010000            	je	col1
+    83 0000009C 4883FF0E                	cmp	rdi, 14
+    84 000000A0 0F84C7010000            	je	col2
+    85 000000A6 4883FF0F                	cmp	rdi, 15
+    86 000000AA 0F84D8010000            	je	col3
+    87 000000B0 C3                      	ret
+    88                                  
+    89                                  check_rows:
+    90 000000B1 4883FF00                	cmp	rdi, 0
+    91 000000B5 0F84E8000000            	je	row0
+    92 000000BB 4883FF01                	cmp	rdi, 1
+    93 000000BF 0F84DE000000            	je	row0
+    94 000000C5 4883FF02                	cmp	rdi, 2
+    95 000000C9 0F84D4000000            	je	row0
+    96 000000CF 4883FF03                	cmp	rdi, 3
+    97 000000D3 0F84CA000000            	je	row0
+    98 000000D9 4883FF04                	cmp	rdi, 4
+    99 000000DD 0F84E3000000            	je	row1
+   100 000000E3 4883FF05                	cmp	rdi, 5
+   101 000000E7 0F84D9000000            	je	row1
+   102 000000ED 4883FF06                	cmp	rdi, 6
+   103 000000F1 0F84CF000000            	je	row1
+   104 000000F7 4883FF07                	cmp	rdi, 7
+   105 000000FB 0F84C5000000            	je	row1
+   106 00000101 4883FF08                	cmp	rdi, 8
+   107 00000105 0F84DE000000            	je	row2
+   108 0000010B 4883FF09                	cmp	rdi, 9
+   109 0000010F 0F84D4000000            	je	row2
+   110 00000115 4883FF0A                	cmp	rdi, 10
+   111 00000119 0F84CA000000            	je	row2
+   112 0000011F 4883FF0B                	cmp	rdi, 11
+   113 00000123 0F84C0000000            	je	row2
+   114 00000129 4883FF0C                	cmp	rdi, 12
+   115 0000012D 0F84D9000000            	je	row3
+   116 00000133 4883FF0D                	cmp	rdi, 13
+   117 00000137 0F84CF000000            	je	row3
+   118 0000013D 4883FF0E                	cmp	rdi, 14
+   119 00000141 0F84C5000000            	je	row3
+   120 00000147 4883FF0F                	cmp	rdi, 15
+   121 0000014B 0F84BB000000            	je	row3
+   122 00000151 C3                      	ret
+   123                                  	
+   124                                  diagonals:
+   125 00000152 4883FF00                	cmp     rdi, 0
+   126 00000156 0F8447010000            	je      diag
+   127 0000015C 4883FF05                	cmp     rdi, 5
+   128 00000160 0F843D010000            	je      diag
+   129 00000166 4883FF0A                	cmp     rdi, 10
+   130 0000016A 0F8433010000            	je      diag
+   131 00000170 4883FF0F                	cmp     rdi, 15
+   132 00000174 0F8429010000            	je      diag
+   133                                  
+   134 0000017A 4883FF03                	cmp     rdi, 3
+   135 0000017E 0F843A010000            	je      antidiag
+   136 00000184 4883FF06                	cmp     rdi, 6
+   137 00000188 0F8430010000            	je      antidiag
+   138 0000018E 4883FF09                	cmp     rdi, 9
+   139 00000192 0F8426010000            	je      antidiag
+   140 00000198 4883FF0C                	cmp     rdi, 12
+   141 0000019C 0F841C010000            	je      antidiag
+   142 000001A2 C3                      	ret
+   143                                  	
+   144                                  row0:
+   145 000001A3 48BA-                   	mov     rdx, scoreBoard
+   145 000001A5 [2700000000000000] 
+   146                                  
+   147 000001AD 4883C200                	add     rdx, 0
+   148 000001B1 4883FE6F                	cmp     rsi, 'o'
+   149 000001B5 0F841E010000            	je      addO
+   150 000001BB 4883FE78                	cmp     rsi, 'x'
+   151 000001BF 0F8424010000            	je      addX
+   152 000001C5 C3                      	ret
+   153                                  
+   154                                  row1:
+   155 000001C6 48BA-                   	mov     rdx, scoreBoard
+   155 000001C8 [2700000000000000] 
+   156                                  
+   157 000001D0 4883C201                	add     rdx, 1
+   158 000001D4 4883FE6F                	cmp     rsi, 'o'
+   159 000001D8 0F84FB000000            	je      addO
+   160 000001DE 4883FE78                	cmp     rsi, 'x'
+   161 000001E2 0F8401010000            	je      addX
+   162 000001E8 C3                      	ret
+   163                                  
+   164                                  row2:
+   165 000001E9 48BA-                   	mov     rdx, scoreBoard
+   165 000001EB [2700000000000000] 
+   166                                  
+   167 000001F3 4883C202                	add     rdx, 2
+   168 000001F7 4883FE6F                	cmp     rsi, 'o'
+   169 000001FB 0F84D8000000            	je      addO
+   170 00000201 4883FE78                	cmp     rsi, 'x'
+   171 00000205 0F84DE000000            	je      addX
+   172 0000020B C3                      	ret
+   173                                  
+   174                                  row3:
+   175 0000020C 48BA-                   	mov     rdx, scoreBoard
+   175 0000020E [2700000000000000] 
+   176                                  
+   177 00000216 4883C203                	add     rdx, 3
+   178 0000021A 4883FE6F                	cmp     rsi, 'o'
+   179 0000021E 0F84B5000000            	je      addO
+   180 00000224 4883FE78                	cmp     rsi, 'x'
+   181 00000228 0F84BB000000            	je      addX
+   182 0000022E C3                      	ret
+   183                                  
+   184                                  col0:
+   185 0000022F 48BA-                   	mov     rdx, scoreBoard
+   185 00000231 [2700000000000000] 
+   186                                  
+   187 00000239 4883C204                	add     rdx, 4
+   188 0000023D 4883FE6F                	cmp     rsi, 'o'
+   189 00000241 0F8492000000            	je      addO
+   190 00000247 4883FE78                	cmp     rsi, 'x'
+   191 0000024B 0F8498000000            	je      addX
+   192 00000251 C3                      	ret
+   193                                  
+   194                                  col1:
+   195 00000252 48BA-                   	mov     rdx, scoreBoard
+   195 00000254 [2700000000000000] 
+   196                                  
+   197 0000025C 4883C205                	add     rdx, 5
+   198 00000260 4883FE6F                	cmp     rsi, 'o'
+   199 00000264 7473                    	je      addO
+   200 00000266 4883FE78                	cmp     rsi, 'x'
+   201 0000026A 747D                    	je      addX
+   202 0000026C C3                      	ret
+   203                                  
+   204                                  col2:
+   205 0000026D 48BA-                   	mov     rdx, scoreBoard
+   205 0000026F [2700000000000000] 
+   206                                  
+   207 00000277 4883C206                	add     rdx, 6
+   208 0000027B 4883FE6F                	cmp     rsi, 'o'
+   209 0000027F 7458                    	je      addO
+   210 00000281 4883FE78                	cmp     rsi, 'x'
+   211 00000285 7462                    	je      addX
+   212 00000287 C3                      	ret
+   213                                  
+   214                                  col3:
+   215 00000288 48BA-                   	mov     rdx, scoreBoard
+   215 0000028A [2700000000000000] 
+   216                                  
+   217 00000292 4883C207                	add     rdx, 7
+   218 00000296 4883FE6F                	cmp     rsi, 'o'
+   219 0000029A 743D                    	je      addO
+   220 0000029C 4883FE78                	cmp     rsi, 'x'
+   221 000002A0 7447                    	je      addX
+   222 000002A2 C3                      	ret
+   223                                  	
+   224                                  diag:
+   225                                  	;; add one to diag1 in point array
+   226                                  	;; load scoreBoard into rdx
+   227 000002A3 48BA-                   	mov	rdx, scoreBoard
+   227 000002A5 [2700000000000000] 
+   228                                  	;; index 8 is diag
+   229 000002AD 4883C208                	add	rdx, 8
+   230 000002B1 4883FE6F                	cmp	rsi, 'o'
+   231 000002B5 7422                    	je	addO
+   232 000002B7 4883FE78                	cmp	rsi, 'x'
+   233 000002BB 742C                    	je	addX
+   234 000002BD C3                      	ret
+   235                                  
+   236                                  antidiag:
+   237 000002BE 48BA-                   	mov	rdx, scoreBoard
+   237 000002C0 [2700000000000000] 
+   238 000002C8 4883C209                	add	rdx, 9
+   239                                  
+   240 000002CC 4883FE6F                	cmp	rsi, 'o'
+   241 000002D0 7407                    	je	addO
+   242 000002D2 4883FE78                	cmp	rsi, 'x'
+   243 000002D6 7411                    	je	addX
+   244 000002D8 C3                      	ret
+   245                                  	
+   246                                  addO:
+   247                                  	;; expecting: rdx -> correct index of scoreBoard
+   248 000002D9 8002FF                  	add	byte[rdx], -1
+   249                                  
+   250 000002DC 48BA-                   	mov	rdx, scoreBoard
+   250 000002DE [2700000000000000] 
+   251 000002E6 EB11                    	jmp	scanBoard
+   252 000002E8 C3                      	ret
+   253                                  
+   254                                  addX:
+   255                                  	;; expecting: rdx -> correct index of scoreBoard
+   256 000002E9 800201                  	add	byte[rdx], 1
+   257                                  
+   258 000002EC 48BA-                   	mov	rdx, scoreBoard
+   258 000002EE [2700000000000000] 
+   259 000002F6 EB01                    	jmp	scanBoard
+   260 000002F8 C3                      	ret
+   261                                  
+   262                                  scanBoard:
+   263 000002F9 803A04                  	cmp	byte[rdx], 4
+   264 000002FC 740E                    	je	playerWon
+   265                                  
+   266 000002FE 803AFC                  	cmp	byte[rdx], -4
+   267 00000301 742A                    	je	compWon
+   268                                  
+   269 00000303 48FFC2                  	inc 	rdx
+   270 00000306 803A0B                  	cmp	byte[rdx], 11		;end of array marker
+   271 00000309 75EE                    	jne 	scanBoard
+   272 0000030B C3                      	ret
+   273                                  
+   274                                  playerWon:
+   275 0000030C B801000000              	mov     rax, 1
+   276 00000311 BF01000000              	mov     rdi, 1
+   277 00000316 48BE-                   	mov     rsi, player_won_msg
+   277 00000318 [0000000000000000] 
+   278 00000320 BA0E000000              	mov     rdx, len_play_won
+   279 00000325 0F05                    	syscall
+   280                                  	
+   281 00000327 E8(00000000)            	call    main
+   282 0000032C C3                      	ret
+   283                                  
+   284                                  compWon:
+   285 0000032D B801000000              	mov     rax, 1
+   286 00000332 BF01000000              	mov     rdi, 1
+   287 00000337 48BE-                   	mov     rsi, comp_won_msg
+   287 00000339 [0E00000000000000] 
+   288 00000341 BA18000000              	mov     rdx, len_comp_won
+   289 00000346 0F05                    	syscall
+   290                                  	
+   291 00000348 E8(00000000)            	call    main
+   292 0000034D C3                      	ret
+   293                                  	
+   294                                  clearScoreBoard:
+   295 0000034E 48BA-                   	mov	rdx, scoreBoard
+   295 00000350 [2700000000000000] 
+   296 00000358 E801000000              	call	clearLoop
+   297 0000035D C3                      	ret
+   298                                  
+   299                                  clearLoop:
+   300 0000035E C60200                  	mov	byte[rdx], 0
+   301 00000361 48FFC2                  	inc	rdx
+   302 00000364 803A0B                  	cmp	byte[rdx], 11
+   303 00000367 75F5                    	jne	clearLoop
+   304 00000369 C3                      	ret
+   305                                  
+   306                                  getFutureMove:
+   307                                  	;; subroutine which returns the index of an score element in scoreBoard which contains 3. This would indicate the user is to win next time they play
+   308 0000036A 48BA-                   	mov	rdx, scoreBoard
+   308 0000036C [2700000000000000] 
+   309 00000374 B800000000              	mov	rax, 0
+   310 00000379 E801000000              	call	getFutMovLoop
+   311                                  	;; index will be returned in rax, or will be 11 if no score of 3 is found
+   312 0000037E C3                      	ret
+   313                                  
+   314                                  getFutMovLoop:
+   315 0000037F 803A03                  	cmp	byte[rdx], 3
+   316 00000382 7412                    	je	foundFutMov
+   317                                  
+   318 00000384 48FFC2                  	inc 	rdx
+   319 00000387 4883C001                	add	rax, 1
+   320 0000038B 803A0B                  	cmp	byte[rdx], 11
+   321 0000038E 7407                    	je	noFutMov
+   322                                  	;; otherwise loop back through
+   323 00000390 803A0B                  	cmp	byte[rdx], 11
+   324 00000393 75EA                    	jne	getFutMovLoop
+   325 00000395 C3                      	ret
+   326                                  
+   327                                  foundFutMov:
+   328                                  	;; current position of rax is our index
+   329 00000396 C3                      	ret
+   330                                  
+   331                                  noFutMov:
+   332                                  	;; no future move to report, set rax to 11 and return
+   333 00000397 B80B000000              	mov	rax, 11
+   334 0000039C C3                      	ret
+   335                                  	

@@ -1,0 +1,548 @@
+     1                                  ;Name: Nicholas Schaffer
+     2                                  ;User ID: nschaff1
+     3                                  ;Email: nschaff1@umbc.edu
+     4                                  ;Date: 12/9/2020
+     5                                  ;Description: this file holds the subroutine for the HARD mode of the tictactoe game. The computer detects if the player can win if they go in a certain spot and prevents that. Otherwise, they place pieces down randomly
+     6                                  	
+     7                                  	extern drawBoard
+     8                                  	extern randomNum
+     9                                  	extern checkWinner
+    10                                  	extern clearScoreBoard
+    11                                  	extern getFutureMove
+    12                                  	extern main
+    13                                  	
+    14                                  	section .data
+    15 00000000 5374617274696E6720-     welcome:	db	"Starting HARD Mode...", 10
+    15 00000009 48415244204D6F6465-
+    15 00000012 2E2E2E0A           
+    16                                  len_welcome	equ	$-welcome
+    17                                  
+    18 00000016 456E7465722061206C-     play:		db	"Enter a location on the board (1-16): ", 10
+    18 0000001F 6F636174696F6E206F-
+    18 00000028 6E2074686520626F61-
+    18 00000031 72642028312D313629-
+    18 0000003A 3A200A             
+    19                                  len_play	equ	$-play
+    20                                  
+    21 0000003D 436F6D707574657220-     computer:	db	"Computer is playing...", 10
+    21 00000046 697320706C6179696E-
+    21 0000004F 672E2E2E0A         
+    22                                  len_comp	equ	$-computer
+    23                                  
+    24 00000054 496E636F7272656374-     incorrect_msg:	db	"Incorrect input!", 10
+    24 0000005D 20696E707574210A   
+    25                                  len_incorrect	equ	$-incorrect_msg
+    26                                  
+    27 00000065 497473206120546965-     tie_msg:	db      "Its a Tie", 10
+    27 0000006E 0A                 
+    28                                  len_tie_msg	equ     $-tie_msg
+    29                                  
+    30 0000006F 412066757475726520-     fut_msg:	db	"A future move was found", 10
+    30 00000078 6D6F76652077617320-
+    30 00000081 666F756E640A       
+    31                                  len_fut_msg	equ	$-fut_msg
+    32                                  	
+    33 00000087 4E6F20667574757265-     no_fut_msg:	db	"No future move was found!", 10
+    33 00000090 206D6F766520776173-
+    33 00000099 20666F756E64210A   
+    34                                  len_no_fut_msg	equ	$-no_fut_msg
+    35                                  	
+    36                                  board:
+    37 000000A1 20                      	db	' '
+    38 000000A2 20                      	db	' '
+    39 000000A3 20                      	db	' '
+    40 000000A4 20                      	db	' '
+    41 000000A5 20                      	db	' '
+    42 000000A6 20                      	db	' '
+    43 000000A7 20                      	db	' '
+    44 000000A8 20                      	db	' '
+    45 000000A9 20                      	db	' '
+    46 000000AA 20                      	db	' '
+    47 000000AB 20                      	db	' '
+    48 000000AC 20                      	db	' '
+    49 000000AD 20                      	db	' '
+    50 000000AE 20                      	db	' '
+    51 000000AF 20                      	db	' '
+    52 000000B0 20                      	db	' '
+    53 000000B1 0B                      	db	11
+    54                                  	
+    55                                  	section .bss
+    56 00000000 <res 00000010>          input		resb	16
+    57                                  	
+    58                                  	section .text
+    59                                  	global	compHard
+    60                                  	
+    61                                  compHard:
+    62                                  	;; clear game board and scoreBoard
+    63 00000000 48BF-                   	mov	rdi, board
+    63 00000002 [A100000000000000] 
+    64 0000000A E877010000              	call	clearBoard2
+    65 0000000F E8(00000000)            	call	clearScoreBoard
+    66                                  
+    67                                  	;; welcome message
+    68 00000014 48BE-                   	mov	rsi, welcome
+    68 00000016 [0000000000000000] 
+    69 0000001E BA16000000              	mov	rdx, len_welcome
+    70 00000023 E8F6000000              	call	print_out3
+    71                                  	
+    72 00000028 E801000000              	call	gameLoop2
+    73 0000002D C3                      	ret
+    74                                  
+    75                                  gameLoop2:
+    76                                  	;; by c calling convention, first parameter for function should be put in rdi
+    77 0000002E 48BF-                   	mov	rdi, board
+    77 00000030 [A100000000000000] 
+    78 00000038 E8(00000000)            	call	drawBoard
+    79                                  
+    80                                  	;; print
+    81 0000003D 48BE-                           mov     rsi, play
+    81 0000003F [1600000000000000] 
+    82 00000047 BA27000000              	mov     rdx, len_play
+    83 0000004C E8CD000000              	call 	print_out3
+    84                                  
+    85                                  	;; get validated user input
+    86 00000051 E81B000000              	call	getInput2
+    87                                  
+    88                                  	;; if game was not won, computer goes
+    89 00000056 48BE-                   	mov 	rsi, computer
+    89 00000058 [3D00000000000000] 
+    90 00000060 BA17000000              	mov	rdx, len_comp
+    91 00000065 E8B4000000              	call 	print_out3
+    92 0000006A E850010000              	call	aI
+    93                                  	
+    94 0000006F EBBD                    	jmp	gameLoop2
+    95                                  
+    96                                  getInput2:
+    97                                  	;;  get user input
+    98 00000071 B800000000              	mov     rax, 0
+    99 00000076 BF00000000              	mov     rdi, 0
+   100 0000007B 48BE-                   	mov     rsi, input
+   100 0000007D [0000000000000000] 
+   101 00000085 BA10000000              	mov     rdx, 16
+   102 0000008A 0F05                    	syscall
+   103                                  
+   104 0000008C 4831C0                  	xor	rax, rax
+   105 0000008F 48BF-                   	mov	rdi, input
+   105 00000091 [0000000000000000] 
+   106 00000099 E88D000000              	call	strToInt2
+   107                                  	;; result will be stored in r12 as it is callee saved
+   108 0000009E 4C89E0                  	mov	rax, r12
+   109 000000A1 4883E801                	sub	rax, 1
+   110 000000A5 48890425[00000000]      	mov	[input], rax
+   111                                  	
+   112                                  	;; jump to incorrect if input is less than 0 or greater than 15
+   113 000000AD 41B800000000            	mov	r8, 0
+   114 000000B3 41B90F000000            	mov	r9, 15
+   115 000000B9 4C39C0                  	cmp	rax, r8
+   116 000000BC 7C46                    	jl	incorrect2
+   117 000000BE 4C39C8                  	cmp	rax, r9
+   118 000000C1 7F41                    	jg	incorrect2
+   119                                  
+   120                                  	;; otherwise the input is valid and we can add it to the board and carry on
+   121 000000C3 48B9-                   	mov	rcx, board
+   121 000000C5 [A100000000000000] 
+   122 000000CD 48030C25[00000000]      	add	rcx, [input]
+   123                                  	;; check at this spot if there is already a piece here
+   124 000000D5 803978                  	cmp	byte[rcx], 'x'
+   125 000000D8 742A                    	je	incorrect2
+   126 000000DA 80396F                  	cmp	byte[rcx], 'o'
+   127 000000DD 7425                    	je	incorrect2
+   128                                  
+   129                                  	;; otherwise place the piece at this location
+   130 000000DF C60178                  	mov	byte[rcx], 'x'
+   131                                  
+   132                                  	;; after placing piece, check winner
+   133                                  	;; subroutine expecting most recently played char in rsi and index in rdi
+   134 000000E2 488B3C25[00000000]      	mov	rdi, [input]
+   135 000000EA BE78000000              	mov	rsi, 'x'
+   136 000000EF E8(00000000)            	call	checkWinner
+   137 000000F4 48BF-                   	mov	rdi, board
+   137 000000F6 [A100000000000000] 
+   138 000000FE E88F000000              	call 	tie2
+   139 00000103 C3                      	ret
+   140                                  	
+   141                                  incorrect2:
+   142 00000104 48BE-                   	mov	rsi, incorrect_msg
+   142 00000106 [5400000000000000] 
+   143 0000010E BA11000000              	mov	rdx, len_incorrect
+   144 00000113 E806000000              	call	print_out3
+   145                                  
+   146 00000118 E954FFFFFF              	jmp	getInput2
+   147 0000011D C3                      	ret
+   148                                  
+   149                                  print_out3:
+   150 0000011E B801000000              	mov     rax, 1
+   151 00000123 BF01000000              	mov     rdi, 1
+   152 00000128 0F05                    	syscall
+   153 0000012A C3                      	ret
+   154                                  
+   155                                  strToInt2:
+   156                                  	;rdi contains address of input, rax will be our integer
+   157 0000012B 486BC00A                	imul    rax, 10
+   158 0000012F 4831D2                  	xor     rdx, rdx
+   159 00000132 8A17                    	mov     dl, byte[rdi]
+   160 00000134 80EA30                  	sub     dl, 48
+   161 00000137 4801D0                  	add     rax, rdx
+   162 0000013A 48FFC7                  	inc     rdi
+   163                                  
+   164                                  	;as long as next character is not a null, continue to loop
+   165 0000013D 803F0A                  	cmp     byte[rdi], 10	;before we adjust for actual values, 10 is a newline
+   166 00000140 75E9                    	jne     strToInt2
+   167                                  
+   168 00000142 4989C4                  	mov	r12, rax
+   169 00000145 C3                      	ret
+   170                                  
+   171                                  comp2:	
+   172 00000146 E8(00000000)            	call	randomNum	;random number in rax
+   173 0000014B 4883E801                	sub	rax, 1		;to make it index
+   174                                  
+   175 0000014F 48B9-                   	mov     rcx, board
+   175 00000151 [A100000000000000] 
+   176 00000159 4801C1                  	add     rcx, rax
+   177                                  	;check at this spot if there is already a piece here
+   178 0000015C 803978                  	cmp     byte[rcx], 'x'
+   179 0000015F 74E5                    	je      comp2
+   180 00000161 80396F                  	cmp     byte[rcx], 'o'
+   181 00000164 74E0                    	je      comp2
+   182                                  	;otherwise place the piece at this location
+   183 00000166 C6016F                  	mov     byte[rcx], 'o'
+   184                                  
+   185                                  	;; check for winner after placing piece
+   186                                  	;; subroutine expecting most recently played char in rsi and index in rdi
+   187 00000169 4889C7                  	mov	rdi, rax
+   188 0000016C BE6F000000              	mov	rsi, 'o'
+   189 00000171 E8(00000000)            	call 	checkWinner
+   190 00000176 48BF-                   	mov	rdi, board
+   190 00000178 [A100000000000000] 
+   191 00000180 E80D000000              	call 	tie2
+   192 00000185 C3                      	ret
+   193                                  
+   194                                  clearBoard2:
+   195                                  	;; clear the board, and replace every spot with a space
+   196 00000186 C60720                  	mov	byte[rdi], ' '
+   197                                  	
+   198 00000189 48FFC7                  	inc	rdi
+   199 0000018C 803F0B                  	cmp	byte[rdi], 11
+   200 0000018F 75F5                    	jne	clearBoard2
+   201 00000191 C3                      	ret
+   202                                  
+   203                                  tie2:
+   204 00000192 803F20                  	cmp     byte[rdi], ' '
+   205 00000195 740D                    	je      notTie2
+   206                                  
+   207 00000197 48FFC7                  	inc     rdi
+   208 0000019A 803F0B                  	cmp     byte[rdi], 11
+   209 0000019D 75F3                    	jne     tie2
+   210 0000019F 803F0B                  	cmp     byte[rdi], 11
+   211 000001A2 7401                    	je      tieFound2
+   212                                  
+   213                                  notTie2:
+   214 000001A4 C3                      	ret
+   215                                  
+   216                                  tieFound2:
+   217 000001A5 48BE-                   	mov     rsi, tie_msg
+   217 000001A7 [6500000000000000] 
+   218 000001AF BA0A000000              	mov     rdx, len_tie_msg
+   219 000001B4 E865FFFFFF              	call    print_out3
+   220                                  
+   221 000001B9 E8(00000000)            	call 	main
+   222 000001BE C3                      	ret
+   223                                  
+   224                                  aI:
+   225                                  	;; get future moves and choose a case based off of the index we get back
+   226 000001BF E8(00000000)            	call	getFutureMove
+   227                                  	;; rax will be 11 if there is no future move
+   228 000001C4 4883F80B                	cmp	rax, 11
+   229 000001C8 0F8478FFFFFF            	je	comp2
+   230                                  
+   231 000001CE E80B000000              	call	compareRows
+   232 000001D3 E82B000000              	call	compareColumns
+   233 000001D8 E84F000000              	call	compareDiag
+   234 000001DD C3                      	ret
+   235                                  
+   236                                  compareRows:
+   237 000001DE 4883F800                	cmp     rax, 0
+   238 000001E2 745D                    	je      row0AI
+   239 000001E4 4883F801                	cmp     rax, 1
+   240 000001E8 0F849D000000            	je      row1AI
+   241 000001EE 4883F802                	cmp     rax, 2
+   242 000001F2 0F84E1000000            	je      row2AI
+   243 000001F8 4883F803                	cmp     rax, 3
+   244 000001FC 0F8425010000            	je      row3AI
+   245 00000202 C3                      	ret
+   246                                  
+   247                                  compareColumns:
+   248 00000203 4883F804                	cmp	rax, 4
+   249 00000207 0F8468010000            	je	col0AI
+   250 0000020D 4883F805                	cmp	rax, 5
+   251 00000211 0F84AB010000            	je	col1AI
+   252 00000217 4883F806                	cmp	rax, 6
+   253 0000021B 0F84F2010000            	je	col2AI
+   254 00000221 4883F807                	cmp	rax, 7
+   255 00000225 0F8439020000            	je	col3AI
+   256 0000022B C3                      	ret
+   257                                  
+   258                                  compareDiag:
+   259 0000022C 4883F808                	cmp	rax, 8
+   260 00000230 0F847B020000            	je	diagAI
+   261 00000236 4883F809                	cmp	rax, 9
+   262 0000023A 0F84AE020000            	je	antidiagAI
+   263 00000240 C3                      	ret
+   264                                  	
+   265                                  row0AI:
+   266                                  	;; check each possible index in row0 against a blank space, and put a piece in the blank spot
+   267                                  	;; row0: index 0-3
+   268 00000241 48BF-                   	mov	rdi, board
+   268 00000243 [A100000000000000] 
+   269 0000024B 41B900000000            	mov	r9, 0
+   270 00000251 803F20                  	cmp	byte[rdi], ' '
+   271 00000254 0F84D5020000            	je	placePiece
+   272                                  
+   273 0000025A 48FFC7                  	inc	rdi
+   274 0000025D 4983C101                	add	r9, 1
+   275 00000261 803F20                  	cmp	byte[rdi], ' '
+   276 00000264 0F84C5020000            	je	placePiece
+   277                                  
+   278 0000026A 48FFC7                  	inc 	rdi
+   279 0000026D 4983C101                	add	r9, 1
+   280 00000271 803F20                  	cmp	byte[rdi], ' '
+   281 00000274 0F84B5020000            	je	placePiece
+   282                                  
+   283 0000027A 48FFC7                  	inc	rdi
+   284 0000027D 4983C101                	add	r9, 1
+   285 00000281 803F20                  	cmp	byte[rdi], ' '
+   286 00000284 0F84A5020000            	je 	placePiece
+   287                                  	
+   288 0000028A C3                      	ret
+   289                                  
+   290                                  row1AI:
+   291                                  ;;;  row1: index 4-7
+   292 0000028B 48BF-                   	mov     rdi, board
+   292 0000028D [A100000000000000] 
+   293 00000295 41B904000000            	mov     r9, 4
+   294 0000029B 4883C704                	add	rdi, 4
+   295 0000029F 803F20                  	cmp     byte[rdi], ' '
+   296 000002A2 0F8487020000            	je      placePiece
+   297                                  
+   298 000002A8 48FFC7                  	inc     rdi
+   299 000002AB 4983C101                	add     r9, 1
+   300 000002AF 803F20                  	cmp     byte[rdi], ' '
+   301 000002B2 0F8477020000            	je      placePiece
+   302                                  
+   303 000002B8 48FFC7                  	inc     rdi
+   304 000002BB 4983C101                	add     r9, 1
+   305 000002BF 803F20                  	cmp     byte[rdi], ' '
+   306 000002C2 0F8467020000            	je      placePiece
+   307                                  
+   308 000002C8 48FFC7                  	inc     rdi
+   309 000002CB 4983C101                	add     r9, 1
+   310 000002CF 803F20                  	cmp     byte[rdi], ' '
+   311 000002D2 0F8457020000            	je      placePiece
+   312 000002D8 C3                      	ret
+   313                                  
+   314                                  row2AI:
+   315                                  ;;;  row2: index 8-11
+   316 000002D9 48BF-                   	mov     rdi, board
+   316 000002DB [A100000000000000] 
+   317 000002E3 41B908000000            	mov     r9, 8
+   318 000002E9 4883C708                	add	rdi, 8
+   319 000002ED 803F20                  	cmp     byte[rdi], ' '
+   320 000002F0 0F8439020000            	je      placePiece
+   321                                  
+   322 000002F6 48FFC7                  	inc     rdi
+   323 000002F9 4983C101                	add     r9, 1
+   324 000002FD 803F20                  	cmp     byte[rdi], ' '
+   325 00000300 0F8429020000            	je      placePiece
+   326                                  
+   327 00000306 48FFC7                  	inc     rdi
+   328 00000309 4983C101                	add     r9, 1
+   329 0000030D 803F20                  	cmp     byte[rdi], ' '
+   330 00000310 0F8419020000            	je      placePiece
+   331                                  
+   332 00000316 48FFC7                  	inc     rdi
+   333 00000319 4983C101                	add     r9, 1
+   334 0000031D 803F20                  	cmp     byte[rdi], ' '
+   335 00000320 0F8409020000            	je      placePiece
+   336 00000326 C3                      	ret
+   337                                  
+   338                                  row3AI:
+   339                                  ;;;  row3: index 12-15
+   340 00000327 48BF-                   	mov     rdi, board
+   340 00000329 [A100000000000000] 
+   341 00000331 41B90C000000            	mov     r9, 12
+   342 00000337 4883C70C                	add	rdi, 12
+   343 0000033B 803F20                  	cmp     byte[rdi], ' '
+   344 0000033E 0F84EB010000            	je      placePiece
+   345                                  
+   346 00000344 48FFC7                  	inc     rdi
+   347 00000347 4983C101                	add     r9, 1
+   348 0000034B 803F20                  	cmp     byte[rdi], ' '
+   349 0000034E 0F84DB010000            	je      placePiece
+   350                                  
+   351 00000354 48FFC7                  	inc     rdi
+   352 00000357 4983C101                	add     r9, 1
+   353 0000035B 803F20                  	cmp     byte[rdi], ' '
+   354 0000035E 0F84CB010000            	je      placePiece
+   355                                  
+   356 00000364 48FFC7                  	inc     rdi
+   357 00000367 4983C101                	add     r9, 1
+   358 0000036B 803F20                  	cmp     byte[rdi], ' '
+   359 0000036E 0F84BB010000            	je      placePiece
+   360 00000374 C3                      	ret
+   361                                  
+   362                                  col0AI:
+   363 00000375 48BF-                   	mov	rdi, board
+   363 00000377 [A100000000000000] 
+   364 0000037F 41B900000000            	mov	r9, 0
+   365 00000385 803F20                  	cmp	byte[rdi], ' '
+   366 00000388 0F84A1010000            	je	placePiece
+   367                                  
+   368 0000038E 4883C704                	add	rdi, 4
+   369 00000392 4983C104                	add	r9, 4
+   370 00000396 803F20                  	cmp	byte[rdi], ' '
+   371 00000399 0F8490010000            	je	placePiece
+   372                                  
+   373 0000039F 4883C704                	add	rdi, 4
+   374 000003A3 4983C104                	add	r9, 4
+   375 000003A7 803F20                  	cmp	byte[rdi], ' '
+   376 000003AA 0F847F010000            	je	placePiece
+   377                                  
+   378 000003B0 4883C704                	add	rdi, 4
+   379 000003B4 4983C104                	add	r9, 4
+   380 000003B8 803F20                  	cmp	byte[rdi], ' '
+   381 000003BB 0F846E010000            	je	placePiece
+   382 000003C1 C3                      	ret
+   383                                  
+   384                                  col1AI:
+   385 000003C2 48BF-                   	mov     rdi, board
+   385 000003C4 [A100000000000000] 
+   386 000003CC 4883C701                	add	rdi, 1
+   387 000003D0 41B901000000            	mov     r9, 1
+   388 000003D6 803F20                  	cmp     byte[rdi], ' '
+   389 000003D9 0F8450010000            	je      placePiece
+   390                                  
+   391 000003DF 4883C704                	add     rdi, 4
+   392 000003E3 4983C104                	add     r9, 4
+   393 000003E7 803F20                  	cmp     byte[rdi], ' '
+   394 000003EA 0F843F010000            	je      placePiece
+   395                                  
+   396 000003F0 4883C704                	add     rdi, 4
+   397 000003F4 4983C104                	add     r9, 4
+   398 000003F8 803F20                  	cmp     byte[rdi], ' '
+   399 000003FB 0F842E010000            	je      placePiece
+   400                                  
+   401 00000401 4883C704                	add     rdi, 4
+   402 00000405 4983C104                	add     r9, 4
+   403 00000409 803F20                  	cmp     byte[rdi], ' '
+   404 0000040C 0F841D010000            	je      placePiece
+   405 00000412 C3                      	ret
+   406                                  
+   407                                  col2AI:
+   408 00000413 48BF-                   	mov     rdi, board
+   408 00000415 [A100000000000000] 
+   409 0000041D 4883C702                	add     rdi, 2
+   410 00000421 41B902000000            	mov     r9, 2
+   411 00000427 803F20                  	cmp     byte[rdi], ' '
+   412 0000042A 0F84FF000000            	je      placePiece
+   413                                  
+   414 00000430 4883C704                	add     rdi, 4
+   415 00000434 4983C104                	add     r9, 4
+   416 00000438 803F20                  	cmp     byte[rdi], ' '
+   417 0000043B 0F84EE000000            	je      placePiece
+   418                                  
+   419 00000441 4883C704                	add     rdi, 4
+   420 00000445 4983C104                	add     r9, 4
+   421 00000449 803F20                  	cmp     byte[rdi], ' '
+   422 0000044C 0F84DD000000            	je      placePiece
+   423                                  
+   424 00000452 4883C704                	add     rdi, 4
+   425 00000456 4983C104                	add     r9, 4
+   426 0000045A 803F20                  	cmp     byte[rdi], ' '
+   427 0000045D 0F84CC000000            	je      placePiece
+   428 00000463 C3                      	ret
+   429                                  
+   430                                  col3AI:
+   431 00000464 48BF-                   	mov     rdi, board
+   431 00000466 [A100000000000000] 
+   432 0000046E 4883C703                	add     rdi, 3
+   433 00000472 41B903000000            	mov     r9, 3
+   434 00000478 803F20                  	cmp     byte[rdi], ' '
+   435 0000047B 0F84AE000000            	je      placePiece
+   436                                  
+   437 00000481 4883C704                	add     rdi, 4
+   438 00000485 4983C104                	add     r9, 4
+   439 00000489 803F20                  	cmp     byte[rdi], ' '
+   440 0000048C 0F849D000000            	je      placePiece
+   441                                  
+   442 00000492 4883C704                	add     rdi, 4
+   443 00000496 4983C104                	add     r9, 4
+   444 0000049A 803F20                  	cmp     byte[rdi], ' '
+   445 0000049D 0F848C000000            	je      placePiece
+   446                                  
+   447 000004A3 4883C704                	add     rdi, 4
+   448 000004A7 4983C104                	add     r9, 4
+   449 000004AB 803F20                  	cmp     byte[rdi], ' '
+   450 000004AE 747F                    	je      placePiece
+   451 000004B0 C3                      	ret
+   452                                  
+   453                                  diagAI:
+   454 000004B1 48BF-                   	mov	rdi, board
+   454 000004B3 [A100000000000000] 
+   455 000004BB 41B900000000            	mov	r9, 0
+   456 000004C1 803F20                  	cmp	byte[rdi], ' '
+   457 000004C4 7469                    	je	placePiece
+   458                                  
+   459 000004C6 4883C705                	add	rdi, 5
+   460 000004CA 4983C105                	add	r9, 5
+   461 000004CE 803F20                  	cmp	byte[rdi], ' '
+   462 000004D1 745C                    	je	placePiece
+   463                                  
+   464 000004D3 4883C705                	add	rdi, 5
+   465 000004D7 4983C105                	add	r9, 5
+   466 000004DB 803F20                  	cmp	byte[rdi], ' '
+   467 000004DE 744F                    	je	placePiece
+   468                                  
+   469 000004E0 4883C705                	add	rdi, 5
+   470 000004E4 4983C105                	add	r9, 5
+   471 000004E8 803F20                  	cmp	byte[rdi], ' '
+   472 000004EB 7442                    	je	placePiece
+   473 000004ED C3                      	ret
+   474                                  
+   475                                  antidiagAI:
+   476 000004EE 48BF-                   	mov	rdi, board
+   476 000004F0 [A100000000000000] 
+   477 000004F8 41B903000000            	mov	r9, 3
+   478 000004FE 4883C703                	add	rdi, 3
+   479 00000502 803F20                  	cmp	byte[rdi], ' '
+   480 00000505 7428                    	je	placePiece
+   481                                  
+   482 00000507 4883C703                	add	rdi, 3
+   483 0000050B 4983C103                	add	r9, 3
+   484 0000050F 803F20                  	cmp	byte[rdi], ' '
+   485 00000512 741B                    	je	placePiece
+   486                                  
+   487 00000514 4883C703                	add	rdi, 3
+   488 00000518 4983C103                	add	r9, 3
+   489 0000051C 803F20                  	cmp	byte[rdi], ' '
+   490 0000051F 740E                    	je	placePiece
+   491                                  
+   492 00000521 4883C703                	add	rdi, 3
+   493 00000525 4983C103                	add	r9, 3
+   494 00000529 803F20                  	cmp	byte[rdi], ' '
+   495 0000052C 7401                    	je	placePiece
+   496 0000052E C3                      	ret
+   497                                  	
+   498                                  placePiece:
+   499                                  	;; index of position to place piece is now in rax, so add piece as necessary
+   500 0000052F 48BF-                   	mov	rdi, board
+   500 00000531 [A100000000000000] 
+   501 00000539 4C01CF                  	add	rdi, r9
+   502 0000053C C6076F                  	mov	byte[rdi], 'o'
+   503                                  	;; check for winner and tie
+   504 0000053F 4C89CF                  	mov	rdi, r9
+   505 00000542 BE6F000000              	mov	rsi, 'o'
+   506 00000547 E8(00000000)            	call	checkWinner
+   507 0000054C 48BF-                   	mov	rdi, board
+   507 0000054E [A100000000000000] 
+   508 00000556 E837FCFFFF              	call	tie2
+   509 0000055B C3                      	ret

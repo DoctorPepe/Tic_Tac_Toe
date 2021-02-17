@@ -1,0 +1,117 @@
+     1                                  ;;;  Name: Nicholas Schaffer
+     2                                  ;;;  User ID: nschaff1
+     3                                  ;;;  Email: nschaff1@umbc.edu
+     4                                  ;;;  Date: 12/9/2020
+     5                                  ;;;  Description: this is the main file for the tictactoe game. In main, we display the starting menu and take in user input to decide what level of computer opponent they want to play aginast.
+     6                                  
+     7                                  	extern compEasy
+     8                                  	extern compHard
+     9                                  	extern checkWinner
+    10                                  	
+    11                                  	section .data
+    12 00000000 0A                      new_line	db	10
+    13 00000001 57656C636F6D652074-     welcome_msg:	db	"Welcome to Tic-Tac-Toe!", 10
+    13 0000000A 6F205469632D546163-
+    13 00000013 2D546F65210A       
+    14                                  len_wel		equ	$-welcome_msg
+    15                                  	
+    16 00000019 4D61696E204D656E75-     main_menu:	db	"Main Menu:", 10, "a. Easy Mode", 10, "b. Hard Mode", 10, "q. quit", 10
+    16 00000022 3A0A612E2045617379-
+    16 0000002B 204D6F64650A622E20-
+    16 00000034 48617264204D6F6465-
+    16 0000003D 0A712E20717569740A 
+    17                                  len_main	equ	$-main_menu
+    18                                  
+    19 00000046 5468697320696E7075-     wrong_in_msg:	db	"This input does not match a menu option!", 10
+    19 0000004F 7420646F6573206E6F-
+    19 00000058 74206D617463682061-
+    19 00000061 206D656E75206F7074-
+    19 0000006A 696F6E210A         
+    20                                  len_wrong	equ	$-wrong_in_msg
+    21                                  
+    22 0000006F 436F6E67726174756C-     egg_msg:	db	"Congratulations! You activated the Easter egg!", 10
+    22 00000078 6174696F6E73212059-
+    22 00000081 6F7520616374697661-
+    22 0000008A 746564207468652045-
+    22 00000093 617374657220656767-
+    22 0000009C 210A               
+    23                                  len_egg_msg	equ	$-egg_msg
+    24                                  
+    25 0000009E 00                      eggCount:	db	0
+    26                                  	
+    27                                  	section .bss
+    28 00000000 <res 00000010>          input		resb	16
+    29                                  	
+    30                                  	section .text
+    31                                  	global main
+    32                                  main:
+    33                                  	;; welcome message
+    34 00000000 48BE-                   	mov	rsi, welcome_msg
+    34 00000002 [0100000000000000] 
+    35 0000000A BA18000000              	mov	rdx, len_wel
+    36 0000000F E866000000              	call	print_out
+    37                                  
+    38                                  	;;     print menu
+    39 00000014 48BE-                   	mov     rsi, main_menu
+    39 00000016 [1900000000000000] 
+    40 0000001E BA2D000000              	mov     rdx, len_main
+    41 00000023 E852000000              	call    print_out
+    42                                  
+    43                                  	;;     get user input
+    44 00000028 B800000000              	mov     rax, 0
+    45 0000002D BF00000000              	mov     rdi, 0
+    46 00000032 48BE-                   	mov     rsi, input
+    46 00000034 [0000000000000000] 
+    47 0000003C BA10000000              	mov     rdx, 16
+    48 00000041 0F05                    	syscall
+    49                                  
+    50 00000043 803C25[00000000]61      	cmp     byte[input], "a"
+    51 0000004B 0F84(00000000)          	je      compEasy
+    52                                  
+    53 00000051 803C25[00000000]62      	cmp     byte[input], "b"
+    54 00000059 0F84(00000000)          	je      compHard
+    55                                  	
+    56 0000005F 803C25[00000000]71      	cmp     byte[input], "q"
+    57 00000067 7407                    	je      exit
+    58                                  
+    59                                  	;; if we get to here, input was incorrect
+    60 00000069 E819000000              	call	incorrect
+    61                                  	
+    62 0000006E EB90                    	jmp     main
+    63                                  	
+    64                                  exit:
+    65 00000070 B83C000000              	mov	rax,60
+    66 00000075 4831FF                  	xor	rdi, rdi
+    67 00000078 0F05                    	syscall
+    68                                  
+    69                                  print_out:
+    70 0000007A B801000000              	mov     rax, 1
+    71 0000007F BF01000000              	mov     rdi, 1
+    72 00000084 0F05                    	syscall	
+    73 00000086 C3                      	ret
+    74                                  
+    75                                  incorrect:
+    76 00000087 48BE-                   	mov	rsi, wrong_in_msg
+    76 00000089 [4600000000000000] 
+    77 00000091 BA29000000              	mov	rdx, len_wrong
+    78 00000096 E8DFFFFFFF              	call	print_out
+    79                                  
+    80 0000009B 803C25[00000000]63      	cmp     byte[input], "c"
+    81 000000A3 7401                    	je      easterEgg
+    82 000000A5 C3                      	ret
+    83                                  
+    84                                  easterEgg:
+    85 000000A6 488B0425[9E000000]      	mov	rax, [eggCount]
+    86 000000AE 4883C001                	add	rax, 1
+    87 000000B2 48890425[9E000000]      	mov	[eggCount], rax
+    88                                  
+    89 000000BA 4883F804                	cmp	rax, 4
+    90 000000BE 7401                    	je	doEgg
+    91 000000C0 C3                      	ret
+    92                                  
+    93                                  doEgg:
+    94 000000C1 48BE-                   	mov	rsi, egg_msg
+    94 000000C3 [6F00000000000000] 
+    95 000000CB BA2F000000              	mov	rdx, len_egg_msg
+    96 000000D0 E8A5FFFFFF              	call	print_out
+    97 000000D5 C3                      	ret
